@@ -3,18 +3,14 @@ import pwmio
 import digitalio
 
 class motor_phase_enable:
-    def __init__(self, enable_pin, phase_pin):
+    def __init__(self, enable_pin, phase_pin, frequency=500):
         self.enable_pin = enable_pin
         self.phase_pin = phase_pin
-        self.enable = pwmio.PWMOut(self.enable_pin, duty_cycle=0, frequency=500)
+        self.frequency = frequency
+        self.enable = pwmio.PWMOut(self.enable_pin, duty_cycle=0, frequency=self.frequency)
         self.phase = digitalio.DigitalInOut(self.phase_pin)
         self.phase.direction = digitalio.Direction.OUTPUT
         self.phase.drive_mode = digitalio.DriveMode.PUSH_PULL
-
-    def __init__(self, enable_pin, phase_pin, frequency):
-        motor_phase_enable(enable_pin, phase_pin)
-        self.frequency = frequency
-        self.enable_ctrl.frequency = self.frequency
 
     def run(self, speed):
         # Speed is from -1 to 1
@@ -29,18 +25,14 @@ class motor_phase_enable:
             self.phase.pull = digitalio.Pull.DOWN
                 
 class motor_pwm:
-    def __init__(self, in1, in2):
+    def __init__(self, in1, in2, frequency=500):
         self.in1 = in1
         self.in2 = in2
-        # frequency = 500 is default
-        self.motor1 = pwmio.PWMOut(self.in1, duty_cycle=0, frequency=500)
-        self.motor2 = pwmio.PWMOut(self.in2, duty_cycle=0, frequency=500)
-
-    def __init__(self, in1, in2, frequency):
-        motor_pwm(self, in1, in2)
         self.frequency = frequency
-        self.motor1.frequency = self.frequency
-        self.motor2.frequency = self.frequency
+        # frequency = 500 is default
+        self.motor1 = pwmio.PWMOut(self.in1, duty_cycle=0, frequency=self.frequency)
+        self.motor2 = pwmio.PWMOut(self.in2, duty_cycle=0, frequency=self.frequency)
+
 
     def run(self, speed, mode):
         # Speed is from -1 to 1

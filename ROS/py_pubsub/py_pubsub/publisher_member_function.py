@@ -14,6 +14,7 @@
 
 import rclpy
 from rclpy.node import Node
+import math
 
 from custom_msgs.msg import Motor
 #from std_msgs.msg import String
@@ -22,15 +23,15 @@ class MinimalPublisher(Node):
 
     def __init__(self):
         super().__init__('minimal_publisher')
-        self.publisher_ = self.create_publisher(Motor, 'Motor_ctrl', 10)
-        timer_period = 0.5  # seconds
+        self.publisher_ = self.create_publisher(Motor, 'motor_ctrl', 10)
+        timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
 
     def timer_callback(self):
         #msg = String()
         msg = Motor()
-        msg.val = 1.0
+        msg.val = math.sin(self.i/100)
         msg.mode = "coast"
         self.publisher_.publish(msg)
         self.i += 1
