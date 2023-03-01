@@ -1,9 +1,10 @@
 import board
 import pwmio
 import digitalio
+import supervisor
 
 class motor_phase_enable:
-    def __init__(self, enable_pin, phase_pin, frequency=500):
+    def __init__(self, enable_pin, phase_pin, frequency=5000):
         self.enable_pin = enable_pin
         self.phase_pin = phase_pin
         self.frequency = frequency
@@ -55,3 +56,13 @@ class motor_pwm:
                 self.motor2.duty_cycle = on
                 self.motor1.duty_cycle = int(65535 + speed * 65535)
 
+    def ros_run(self):
+        while supervisor.runtime.serial_connected:
+            if supervisor.runtime.serial_bytes_available:
+                sub = str(input().strip())
+                split = sub.split(",")
+                self.run(float(split[0]), split[1])
+                #print(f"Received: {sub}\n\r")
+    
+    def stop(self):
+        self.run(0, "brake")
