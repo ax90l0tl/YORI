@@ -14,19 +14,24 @@ XM = {}
 xm430_position_offset_180 = 2048
 position_constant = (xm430_position_offset_180/180)
 xm430_position_offset_90 = xm430_position_offset_180/2
+dt = 1.e-3
 
 # Dynamixel will rotate between this value
 DXL_MIN_POSITION_VALUE = [0]
 
 # and this value (note that the Dynamixel would not move when the position value is out of movable range. Check e-manual about the range of the Dynamixel you use.)
-DXL_MAX_POSITION_VALUE = [2097151]
+DXL_MAX_POSITION_VALUE = [4096]
 
 # Velocity limit (0~1023)
 DXL_MAX_VELOCITY_VALUE = [1000]
+# about 0.224 rpm
 DXL_MAX_VELOCITY_PROFILE = [1000]
 
 # limit
 DXL_MAX_VELOCITY_VALUE = DXL_MAX_VELOCITY_VALUE
+#max speed of the motor in rev per second
+max_rps = 0.229*DXL_MAX_VELOCITY_VALUE[0]/60
+# print(max_rps)
 
 # profile  limit (less than velocity & acceleration limit) # DXL_PROFILE_VELOCITY = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,]
 DXL_PROFILE_VELOCITY = DXL_MAX_VELOCITY_PROFILE
@@ -39,7 +44,7 @@ DXL_MOVING_STATUS_THRESHOLD = [10]
 
 # PID gain (0 ~ 16,383)
 P_gain = [100]
-I_gain = [10]
+I_gain = [0]
 D_gain = [0]
 
 ESC_ASCII_VALUE = 0x1b  # for ESC key to escape out from the operation
@@ -142,11 +147,11 @@ class Dynamixel(object):
         # Set control mode
         self.control_mode = 'position'
     
-    def initialize(self, num_vp):
+    def initialize(self, num_vp=100):
         init_theta_0 = np.array([0, 0, 0, 0, 0]) # in degrees
-        #init_theta_1 = np.array([206.2]) # in degrees
+        current = self.read_motors(DXL_ID)
+        print(current)
         self.operate_motors(DXL_ID, init_theta_0, num_vp)
-        #self.operate_motor_single(DXL_ID[1],init_theta_1, num_vp)
 
     def vps_gen_js(self, start_pos, end_pos, num_vp):
         """
@@ -159,7 +164,7 @@ class Dynamixel(object):
         type end_pos: 1xi list
 
         param num_vp: the number of via points including end_point
-        type num_vp: int (num_vp >= 1)
+        type num_vp: int (num_vp >= 2)
 
         return: vps_js in joint space
         rtype: nxi numpy array
@@ -167,27 +172,6 @@ class Dynamixel(object):
         """
         vps_js = np.linspace(start_pos, end_pos, num_vp, axis=-1)
         # print(vps_js)
-
-        return vps_js
-
-    # def vps_gen_js_single(self, start_pos, end_pos, num_vp):
-        """
-        Generate via points in joint space from present joint angle to desired joint angle
-
-        param start_pos: initial joint angles
-        type start_pos: 1xi list
-
-        param end_pos: desired joint angles
-        type end_pos: 1xi list
-
-        param num_vp: the number of via points including end_point
-        type num_vp: int (num_vp >= 1)
-
-        return: vps_js in joint space
-        rtype: nxi numpy array
-
-        """
-        vps_js = np.linspace(start_pos, end_pos, num_vp)
         return vps_js
 
     def set_joint_torque_enable(self): 
@@ -196,64 +180,31 @@ class Dynamixel(object):
     def set_joint_torque_disable(self):
         self.write('TORQUE_ENABLE', zip(DXL_ID, (0, )*len(DXL_ID)))    
 
-    def extended_position_control_enable(self):
+    def extended_position_enable(self):
         self.write('OPERATING_MODE', zip(DXL_ID, (4, )*len(DXL_ID)))
 
-    def extended_position_control_disable(self):
+    def extended_position_disable(self):
         self.write('OPERATING_MODE', zip(DXL_ID, (3, )*len(DXL_ID)))
-
-    # def operate_motor_single(self, id, goal_theta, num_vp):
-        # present_theta = self.read_motors(id)
-        # # print(present_theta)
-        # # Transfer target theta
-        # new_goal_theta = goal_theta * position_constant
-        # present_theta = present_theta * position_constant
-        # # print(present_theta)
-        # # print(new_goal_theta)
-
-        # vps = self.vps_gen_js(present_theta, new_goal_theta, num_vp)
-        # # print(vps)
-
-        # dt = 1.e-3
-        # t0 = time.time()
-        # index_step = 0
-
-        # while index_step < num_vp:
-            
-        #     # print(vps[index_step])
-        #     self.write('GOAL_POSITION', zip([id], np.rint(vps[0]).astype(int)))
-
-        #     # print(index_step)
-        #     # print(vps[index_step])
-
-        #     index_step += 1
-        #     # busy loop to sync
-        #     wait(dt, t0)        # wait for dt from t0 until t0+dt
-        #     t1 = time.time()
-        #     # print("Time = {}".format(t1-t0))
-        #     t0 = time.time()    # update t0, the new t0 ~= the last t0 + dt
 
     def operate_motors(self, ids, target_theta, num_vp):
         present_theta = self.read_motors(ids)
 
         # Transfer target theta
         new_target_theta = target_theta * position_constant
-        present_theta = present_theta * position_constant
+        # print("current:", present_theta)
+        # print("target:", new_target_theta)
 
-        print("current:", present_theta)
-        print("target:", new_target_theta)
+        # num_vp = self.check_step_size(ids, target_theta, num_vp)
 
         vps = self.vps_gen_js(present_theta, new_target_theta, num_vp)
-        print(vps)
-        dt = 1.e-3
+        # print(vps)
         t0 = time.time()
         index = 0
 
         # print(len(vps))
 
         while index < num_vp:
-            # print(index)
-            print(list(zip(ids, np.rint(vps[:, index]).astype(int))))
+            # print(list(zip(ids, np.rint(vps[:, index]).astype(int))))
             self.write('GOAL_POSITION', zip(ids, np.floor(vps[:, index]).astype(int)))
 
             # update index
@@ -265,6 +216,19 @@ class Dynamixel(object):
             # print("Time = {}".format(t1-t0))
             t0 = time.time()    # update t0, the new t0 ~= the last t0 + dt
 
+    def check_step_size(self, ids, target_theta, num_vp):
+        present_theta = self.read_motors(ids)*1/position_constant
+        step_size = np.abs(target_theta - present_theta)
+        max_step_size = np.max(step_size)
+        rps = max_step_size/num_vp/360/dt
+        if rps > max_rps:
+            print("Step size of ", rps, "is too big")
+            max_num_vp = np.floor(max_step_size/360/max_rps/dt).astype(int)
+            print(max_num_vp)
+            return max_num_vp
+        else:
+            return num_vp
+            
     def read_motors(self, ids):
         read_th = self.read('PRESENT_POSITION', ids)
         print(read_th)
@@ -272,17 +236,8 @@ class Dynamixel(object):
         for i in range(len(ids)):
             current_pos[i] = read_th[i][0]
         print(current_pos)
-        #current_pos_0 = read_th[0][0]
-        # current_pos_1 = read_th[1][0]
-        # position_constant = 180.0/xm430_position_offset_180
-        # if current_pos_1 > 0x7fffffff:
-        #     current_pos_1 = current_pos_1 - 2088959
-        # current_pos = current_pos * position_constant
-        # print(current_pos * int(position_constant))
-        # current_pos_1 = current_pos_1 * position_constant
-        # current_pos = np.array([current_pos])
 
-        return current_pos#, current_pos_1])
+        return current_pos
     
     def add_parameter_storage(self, ids):
         [self.position_reader.addParam(id) for id in ids]
