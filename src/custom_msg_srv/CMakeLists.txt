@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(custom_msgs)
+project(custom_msg_srv)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -37,6 +37,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Motor.msg"
+  "srv/Funnel.srv"
+  "msg/Funnel.msg"
   DEPENDENCIES  # Add packages that above messages depend on
 )
 

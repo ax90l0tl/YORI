@@ -1,11 +1,12 @@
 from setuptools import setup
+from setuptools import find_packages
 
-package_name = 'py_pubsub'
+package_name = 'yori_funnel'
 
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -16,12 +17,11 @@ setup(
     maintainer='isopodin-time',
     maintainer_email='ax90l0tl@gmail.com',
     description='TODO: Package description',
-    license='Apache License 2.0',
+    license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-                'talker = py_pubsub.publisher_member_function:main',
-                'listener = py_pubsub.subscriber_member_function:main',
-                ],
+            'funnel_sub = yori_funnel.yori_funnel_sub:main'
+        ],
     },
 )
