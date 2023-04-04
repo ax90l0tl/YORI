@@ -151,6 +151,9 @@ class Dynamixel(object):
         self.zero = self.read_motors(DXL_ID)
         print("new zero", self.zero)
 
+    def set_zero(self, zero):
+        self.zero = zero
+
     def vps_gen_js(self, start_pos, end_pos, num_vp):
         """
         Generate via points in joint space from present joint angle to desired joint angle
@@ -184,55 +187,56 @@ class Dynamixel(object):
     def extended_position_disable(self):
         self.write('OPERATING_MODE', zip(DXL_ID, (3, )*len(DXL_ID)))
 
-    def operate_motors_gen(self, ids, target_theta, present_theta, num_vp):
-        vps = self.vps_gen_js(present_theta, target_theta, num_vp)
-        # print(vps)
-        t0 = time.time()
-        index = 0
+    def operate_motors_gen(self, ids, target_theta, present_theta):
+        self.write('GOAL_POSITION', zip(ids, np.floor(target_theta).astype(int)))
+        time.sleep(1)
+        # vps = self.vps_gen_js(present_theta, target_theta, num_vp)
+        # # print(vps)
+        # t0 = time.time()
+        # index = 0
 
-        # print(len(vps))
+        # # print(len(vps))
 
-        while index < num_vp:
-            # print(list(zip(ids, np.rint(vps[:, index]).astype(int))))
-            self.write('GOAL_POSITION', zip(ids, np.floor(vps[:, index]).astype(int)))
+        # while index < num_vp:
+        #     # print(list(zip(ids, np.rint(vps[:, index]).astype(int))))
+        #     self.write('GOAL_POSITION', zip(ids, np.floor(vps[:, index]).astype(int)))
 
-            # update index
-            index += 1
+        #     # update index
+        #     index += 1
 
-            # busy loop to sync
-            wait(dt, t0)        # wait for dt from t0 until t0+dt
-            t1 = time.time()
-            # print("Time = {}".format(t1-t0))
-            t0 = time.time()    # update t0, the new t0 ~= the last t0 + dt
+        #     # busy loop to sync
+        #     wait(dt, t0)        # wait for dt from t0 until t0+dt
+        #     t1 = time.time()
+        #     # print("Time = {}".format(t1-t0))
+        #     t0 = time.time()    # update t0, the new t0 ~= the last t0 + dt
     
     # bring motors to certain position for the 0 value on the encoder
-    def operate_motors_abs(self, ids, target_theta, num_vp=100):
+    def operate_motors_abs(self, ids, target_theta):
         present_theta = self.read_motors(ids)
 
         # Transfer target theta
-        new_target_theta = target_theta * position_constant
+        new_target_theta = position_constant * target_theta 
         # print("current:", present_theta)
         # print("target:", new_target_theta)
 
         # self.check_step_size(ids, target_theta, num_vp)
-        self.operate_motors_gen(ids, new_target_theta, present_theta, num_vp)
+        self.operate_motors_gen(ids, new_target_theta, present_theta)
     
     # bring motors to a position from their current position
-    def operate_motors_rel(self, ids, target_theta, num_vp=100):
+    def operate_motors_rel(self, ids, target_theta):
         present_theta = self.read_motors(ids)
         new_target_theta = np.ones(len(ids))
         new_target_theta = position_constant * target_theta * new_target_theta
         # Transfer target theta
         for i in range(len(present_theta)):
             new_target_theta[i] = present_theta[i] + new_target_theta[i]
-        new_target_theta = new_target_theta
         # print("current position:", present_theta)
         # print("target position:", new_target_theta)
-        self.operate_motors_gen(ids, new_target_theta, present_theta, num_vp)
+        self.operate_motors_gen(ids, new_target_theta, present_theta)
     
     # bring motors to a position from their position on startup
-    # must run initialize first
-    def operate_motors_abs_rel(self, ids, target_theta, num_vp=100):
+    # must run initialize first to get zero position
+    def operate_motors_abs_rel(self, ids, target_theta):
         present_theta = self.read_motors(ids)
         new_target_theta = np.ones(len(ids))
         new_target_theta = position_constant * new_target_theta
@@ -240,8 +244,8 @@ class Dynamixel(object):
             new_target_theta[i] = new_target_theta[i] * target_theta[i]
             new_target_theta[i] = new_target_theta[i] + self.zero[ids[i]-1] - present_theta[i]
         new_target_theta = new_target_theta * 1/position_constant
-        print("target", new_target_theta)
-        self.operate_motors_rel(ids, new_target_theta, num_vp)
+        # print("target", new_target_theta)
+        self.operate_motors_rel(ids, new_target_theta)
 
     def check_step_size(self, ids, target_theta, num_vp):
         present_theta = self.read_motors(ids)*1/position_constant # degrees
@@ -265,7 +269,7 @@ class Dynamixel(object):
             current_pos[i] = read_th[i][0]
             if current_pos[i] > 2.1474816e+09:
                 current_pos[i] = current_pos[i] - 2*(2.1474816e+09) - 4096
-        print("current position:", current_pos)
+        # print("current position:", current_pos)
 
         return current_pos
     

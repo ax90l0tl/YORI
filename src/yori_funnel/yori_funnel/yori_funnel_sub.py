@@ -16,18 +16,26 @@ class FunnelSubscriber(Node):
             self.msg_callback,
             1)
         self.subscription  # prevent unused variable warning
-        self.last_msg = np.zeros(3)
+        self.last_msg = np.zeros(3) #variable to store message
         self.do_action = False
 
     def msg_callback(self, msg):
+        #first number is the z height
+        #second number is the rotation
+        #third number is the tilt
+        #fourth number is the number of via points (less means faster)
         for i in range(3):
-            print("msg part", i, msg.action[i])
             if self.last_msg[i] != msg.action[i]:
                 self.last_msg[i] = msg.action[i]
                 self.do_action = True
-        print(self.last_msg)
         if self.do_action == True:
-            self.funnel.all_actions(self.last_msg, msg.action[3])
+            print("Doing", self.last_msg, " ...")
+            # fold up funnel if we need to rotate the funnel
+            if self.last_msg[1] != msg.action[i]:
+                self.funnel.funnel_fold_up()
+            self.funnel.funnel_up_down(self.last_msg[0])
+            self.funnel.funnel_spin(self.last_msg[1])
+            self.funnel.funnel_tilt(self.last_msg[2])
             self.do_action = False
         
     def destroy_node(self) -> bool:
@@ -35,17 +43,14 @@ class FunnelSubscriber(Node):
         return super().destroy_node()
 
 def main(args=None):
-    rclpy.init(args=args)
+    try:
+        rclpy.init(args=args)
+        funnel = FunnelSubscriber()
+        rclpy.spin(funnel)
+    except KeyboardInterrupt:
+        funnel.destroy_node()
+        rclpy.shutdown()
 
-    funnel = FunnelSubscriber()
-
-    rclpy.spin(funnel)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    funnel.destroy_node()
-    rclpy.shutdown()
 
 
 if __name__ == '__main__':
