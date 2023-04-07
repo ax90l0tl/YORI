@@ -1,4 +1,4 @@
-from FUNNEL_SYSTEM import *
+from yori_funnel.yori_funnel.dictionary.FUNNEL_SYSTEM import *
 
 var = actions['PRESET_HEIGHTS'][1]
 print(var.get('POSITION'))

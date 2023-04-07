@@ -23,8 +23,8 @@ DXL_MIN_POSITION_VALUE = [0]
 DXL_MAX_POSITION_VALUE = [4096]
 
 # Velocity limit (0~1023)
-DXL_MAX_VELOCITY_VALUE = [1000]
-DXL_MAX_VELOCITY_PROFILE = [1000]
+DXL_MAX_VELOCITY_VALUE = [500]
+DXL_MAX_VELOCITY_PROFILE = [500]
 
 # limit
 DXL_MAX_VELOCITY_VALUE = DXL_MAX_VELOCITY_VALUE
@@ -215,7 +215,10 @@ class Dynamixel(object):
         present_theta = self.read_motors(ids)
 
         # Transfer target theta
-        new_target_theta = position_constant * target_theta 
+        new_target_theta = np.ones(len(ids))
+        new_target_theta = position_constant * new_target_theta
+        for i in range(len(present_theta)):
+            new_target_theta[i] = new_target_theta[i] * target_theta[i]
         # print("current:", present_theta)
         # print("target:", new_target_theta)
 

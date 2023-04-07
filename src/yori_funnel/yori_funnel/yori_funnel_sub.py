@@ -37,12 +37,12 @@ class FunnelSubscriber(Node):
                 self.last_msg[i] = msg.action[i]
                 self.do_action = True
         if self.do_action == True:
-            print("Doing", self.last_msg, " ...")
-            if msg.action[3] != 0 and self.last_msg[3] == msg.action[3]:
+            if msg.action[3] != 0:
                 print("Going to preset position: ", msg.action[3])
                 self.funnel.preset_pos(msg.action[3])
             else:
-                    self.funnel.all_actions(self.last_msg)
+                print("Doing", self.last_msg, " ...")
+                self.funnel.all_actions(self.last_msg)
             self.do_action = False
 
     def destroy_node(self) -> bool:
